@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+import config  # noqa: F401
 from mayavi import mlab
 import logging
 import os
