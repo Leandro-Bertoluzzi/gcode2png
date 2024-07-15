@@ -1,0 +1,9 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# test output
+*.png
+
+# GCODE test files
+*.gcode
