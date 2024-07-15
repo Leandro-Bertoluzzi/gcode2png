@@ -4,6 +4,7 @@ __pycache__/
 
 # test output
 *.png
+parsed.json
 
 # GCODE test files
 *.gcode

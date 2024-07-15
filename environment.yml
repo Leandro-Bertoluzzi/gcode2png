@@ -15,3 +15,4 @@ dependencies:
     - vtk==9.3.*
     - mayavi==4.8.*
     - types-pillow==10.2.*
+    - json-fix

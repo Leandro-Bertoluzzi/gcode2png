@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import json
+import json_fix  # noqa: F401
 import math
 import re
+import sys
 
 
 class GcodeParser:
-
     def __init__(self):
         self.model = {}
         self.model["object"] = GcodeModel(self)
@@ -62,7 +64,7 @@ class GcodeParser:
 
         # TODO strip logical line number & checksum
 
-        # code is fist word, then args
+        # code is first word, then args
         comm = command.split(None, 1)
         code = comm[0] if (len(comm) > 0) else None
         args = comm[1] if (len(comm) > 1) else None
@@ -132,7 +134,6 @@ class GcodeParser:
 
 
 class BBox(object):
-
     def __init__(self, coords):
         self.xmin = self.xmax = coords["X"]
         self.ymin = self.ymax = coords["Y"]
@@ -164,9 +165,15 @@ class BBox(object):
         self.zmin = min(self.zmin, coords["Z"])
         self.zmax = max(self.zmax, coords["Z"])
 
+    def __json__(self):
+        return {
+            "X": {"xmin": self.xmin, "xmax": self.xmax},
+            "Y": {"ymin": self.ymin, "ymax": self.ymax},
+            "Z": {"zmin": self.zmin, "zmax": self.zmax},
+        }
+
 
 class GcodeModel:
-
     def __init__(self, parser):
         # save parser for messages
         self.parser = parser
@@ -411,6 +418,19 @@ class GcodeModel:
             f"extrude={self.extrude}>"
         )
 
+    def __json__(self):
+        return {
+            "relative": self.relative,
+            "offset": self.offset,
+            "is_relative": self.isRelative,
+            "segments": self.segments,
+            "layers": self.layers,
+            "distance": self.distance,
+            "extrudate": self.extrudate,
+            "bbox": self.bbox,
+            "extrude": self.extrude,
+        }
+
 
 class Segment:
     def __init__(self, type, coords, lineNb, line):
@@ -435,6 +455,19 @@ class Segment:
             f"extrude={self.extrude}>"
         )
 
+    def __json__(self):
+        return {
+            "type": self.type,
+            "coords": self.coords,
+            "lineNb": self.lineNb,
+            "line": self.line,
+            "style": self.style,
+            "layer_idx": self.layerIdx,
+            "distance": self.distance,
+            "extrudate": self.extrudate,
+            "extrude": self.extrude,
+        }
+
 
 class Layer:
     def __init__(self, Z):
@@ -444,18 +477,28 @@ class Layer:
         self.extrudate = None
 
     def __str__(self):
-        return "<Layer: Z=%f, len(segments)=%d, distance=%f, extrudate=%f>" % (
-            self.Z,
-            len(self.segments),
-            self.distance,
-            self.extrudate,
+        return (
+            f"<Layer: Z={self.Z}, "
+            f"len(segments)={len(self.segments)}, "
+            f"distance={self.distance}, "
+            f"extrudate={self.extrudate}>"
         )
+
+    def __json__(self):
+        return {
+            "Z": self.Z,
+            "segments": self.segments,
+            "distance": self.distance,
+            "extrudate": self.extrudate,
+        }
 
 
 if __name__ == "__main__":
-    path = "d.gcode"
+    input_path = sys.argv[1]
+    output_path = "parsed.json"
 
     parser = GcodeParser()
-    model = parser.parseFile(path)
+    model = parser.parseFile(input_path)
 
-    print(model)
+    with open(output_path, "w") as file:
+        file.write(json.dumps(model))

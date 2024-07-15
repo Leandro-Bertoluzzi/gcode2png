@@ -26,5 +26,11 @@ python ./gcode2png.py test.gcode moves=[true/false] support=[true/false] show=[t
 python ./gcode2png.py batch /path/to/files/ moves=[true/false] support=[true/false] show=[true/false] bed=[true/false]
 ```
 
+## Single file parsing
+```bash
+python ./gcodeParser.py test.gcode
+```
+Useful for debugging, output will be exported to `parsed.json`.
+
 ## Thanks to:
 gcodeParser.py forked and modifed from: https://github.com/jonathanwin/yagv
