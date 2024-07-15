@@ -6,7 +6,7 @@ all images are created with width of 800px and somewhat ~600px height
 
 ## Installation:
 ```bash
-sudo pip install six==1.12.0 bokeh matplotlib numpy mayavi Pillow wxPython
+sudo pip install -r requirements.txt
 ```
 
 # Usage:
