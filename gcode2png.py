@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-
-from numpy import pi, sin, cos, mgrid
-from gcodeParser import *
-import sys, time, os
 from mayavi import mlab
-import numpy as np
-from tvtk.api import tvtk
 import logging
+import os
+import sys
+
 from PIL import Image
+from tvtk.api import tvtk
+
+from gcodeParser import *
 
 
 logger = logging.getLogger('gcodeParser')
@@ -158,7 +158,7 @@ class GcodeRenderer:
 		img = Image.open(img_path)
 		wpercent = (basewidth/float(img.size[0]))
 		hsize = int((float(img.size[1])*float(wpercent)))
-		img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+		img = img.resize((basewidth,hsize), Image.LANCZOS)
 		img.save(img_path) 
 
 

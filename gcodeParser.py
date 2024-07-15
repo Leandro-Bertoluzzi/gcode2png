@@ -116,7 +116,6 @@ class GcodeParser:
 		ignore = True
 		
 	def error(self, msg):
-		print "[ERROR] Line %d: %s (Text:'%s')" % (self.lineNb, msg, self.line)
 		raise Exception("[ERROR] Line %d: %s (Text:'%s')" % (self.lineNb, msg, self.line))
 
 class BBox(object):
@@ -179,20 +178,20 @@ class GcodeModel:
 		self.extrudate = None
 		self.bbox = None
 
-	def do_G0(self, args, type):
+	def do_G0(self, args: dict, type):
 		# G0/G1: Rapid/Controlled move
 		# clone previous coords
 		coords = dict(self.relative)
 		# update changed coords
 		for axis in args.keys():
-			if coords.has_key(axis):
+			if axis in coords:
 				if self.isRelative:
 					coords[axis] += args[axis]
 				else:
 					coords[axis] = args[axis]
 			else:
 				#self.warn("Unknown axis '%s'"%axis)
-				warn=true
+				warn = True
 		# build segment
 		absolute = {
 			"X": self.offset["X"] + coords["X"],
@@ -210,13 +209,13 @@ class GcodeModel:
 		# update model coords
 		self.relative = coords
 	
-	def do_G1(self, args, type):
+	def do_G1(self, args: dict, type):
 		# G0/G1: Rapid/Controlled move
 		# clone previous coords
 		coords = dict(self.relative)
 		# update changed coords
 		for axis in args.keys():
-			if coords.has_key(axis):
+			if axis in coords:
 				if self.isRelative:
 					coords[axis] += args[axis]
 				else:
@@ -247,7 +246,7 @@ class GcodeModel:
 		# G28: Move to Origin
 		self.warn("G28 unimplemented")
 		
-	def do_G92(self, args):
+	def do_G92(self, args: dict):
 		# G92: Set Position
 		# this changes the current coords, without moving, so do not generate a segment
 		
@@ -256,7 +255,7 @@ class GcodeModel:
 			args = {"X":0.0, "Y":0.0, "Z":0.0, "E":0.0}
 		# update specified axes
 		for axis in args.keys():
-			if self.offset.has_key(axis):
+			if axis in self.offset:
 				# transfer value from relative to offset
 				self.offset[axis] += self.relative[axis] - args[axis]
 				self.relative[axis] = args[axis]
@@ -459,4 +458,4 @@ if __name__ == '__main__':
 	parser = GcodeParser()
 	model = parser.parseFile(path)
 
-	print model
+	print(model)
