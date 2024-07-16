@@ -95,13 +95,11 @@ class GcodeParser:
 
     def parse_G0(self, args):
         # G0: Rapid move
-        # same as a controlled move for us (& reprap FW)
-        self.parse_G1(args, "G0")
-        # self.model.do_G0(self.parseArgs(args), type)
+        self.model[self.category].do_G0_G1(self.parseArgs(args), "G0")
 
-    def parse_G1(self, args, type="G1"):
+    def parse_G1(self, args):
         # G1: Controlled move
-        self.model[self.category].do_G1(self.parseArgs(args), type)
+        self.model[self.category].do_G0_G1(self.parseArgs(args), "G1")
 
     def parse_G20(self, args):
         # G20: Set Units to Inches
@@ -193,33 +191,7 @@ class GcodeModel:
         self.extrude = 0
         self.bbox: Optional[BBox] = None
 
-    def do_G0(self, args: dict, type):
-        # G0/G1: Rapid/Controlled move
-        # clone previous coords
-        coords = dict(self.relative)
-        # update changed coords
-        for axis in args.keys():
-            if axis in coords:
-                if self.isRelative:
-                    coords[axis] += args[axis]
-                else:
-                    coords[axis] = args[axis]
-            else:
-                self.warn(f"Unknown axis '{axis}'")
-        # build segment
-        absolute = {
-            "X": self.offset["X"] + coords["X"],
-            "Y": self.offset["Y"] + coords["Y"],
-            "Z": self.offset["Z"] + coords["Z"],
-            "F": coords["F"],  # no feedrate offset
-            "E": self.offset["E"] + coords["E"],
-        }
-        seg = Segment(type, absolute, self.parser.lineNb, self.parser.line)
-        self.addSegment(seg)
-        # update model coords
-        self.relative = coords
-
-    def do_G1(self, args: dict, type):
+    def do_G0_G1(self, args: dict, type: Literal["G0", "G1"]):
         # G0/G1: Rapid/Controlled move
         # clone previous coords
         coords = dict(self.relative)
@@ -423,7 +395,6 @@ class GcodeModel:
         return {
             "relative": self.relative,
             "offset": self.offset,
-            "is_relative": self.isRelative,
             "segments_count": len(self.segments),
             "layers_count": len(self.layers),
             "layers": self.layers,
@@ -487,6 +458,7 @@ class Layer:
         return {
             "Z": self.Z,
             "start": self.start,
+            "segments_count": len(self.segments),
             "segments": self.segments,
             "distance": self.distance,
         }
