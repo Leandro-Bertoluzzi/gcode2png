@@ -8,8 +8,16 @@ import sys
 
 from PIL import Image
 from tvtk.api import tvtk
+from typing import TypedDict
 
 import gcodeParser as gcode
+
+# Types definition
+Color = tuple[float, float, float]
+Points = TypedDict("Points", {"x": list[float], "y": list[float], "z": list[float]})
+Coordinates = TypedDict(
+    "Coordinates", {"object": Points, "moves": Points, "support": Points}
+)
 
 
 logger = logging.getLogger("gcodeParser")
@@ -31,7 +39,7 @@ class GcodeRenderer:
         self.moves = ""
         self.show = ""
 
-        self.coords = {}
+        self.coords: Coordinates = {}
         self.coords["object"] = {}
         self.coords["moves"] = {}
         self.coords["support"] = {}
@@ -51,12 +59,12 @@ class GcodeRenderer:
         blue = (0, 0.4980, 0.9960)
         mediumgrey = (0.7, 0.7, 0.7)
 
-        self.supportcolor = lightgrey
-        self.extrudecolor = blue
-        self.bedcolor = mediumgrey
-        self.movecolor = red
+        self.supportcolor: Color = lightgrey
+        self.extrudecolor: Color = blue
+        self.bedcolor: Color = mediumgrey
+        self.movecolor: Color = red
 
-    def run(self, path, support, moves, bed, show):
+    def run(self, path: str, support: str, moves: str, bed: str, show: str):
         self.path = path
         self.support = support
         self.moves = moves
@@ -73,18 +81,14 @@ class GcodeRenderer:
         else:
             self.save()
 
-    def loadModel(self, path):
-        # print "loading file %s ..."%repr(path)
+    def loadModel(self, path: str):
+        # print(f"loading file {path} ...")
         parser = gcode.GcodeParser()
         model = parser.parseFile(path)
 
         for layer in model["object"].layers:
             for seg in layer.segments:
-                # if seg.extrude > 0 and seg.distance > 0:
-                # if seg.extrude/seg.distance > 1:
                 if seg.style == "extrude":
-                    # if(seg.extrudate > 0.5):
-                    # print(seg.extrude/seg.distance)
                     self.coords["object"]["x"].append(seg.coords["X"])
                     self.coords["object"]["y"].append(seg.coords["Y"])
                     self.coords["object"]["z"].append(seg.coords["Z"])

@@ -5,16 +5,21 @@ import json_fix  # noqa: F401
 import math
 import re
 import sys
+from typing import Literal, Optional, TypedDict
+
+# Types definition
+Model = TypedDict("Model", {"object": "GcodeModel", "support": "GcodeModel"})
+ModelCategory = Literal["object", "support"]
 
 
 class GcodeParser:
     def __init__(self):
-        self.model = {}
+        self.model: Model = {}
         self.model["object"] = GcodeModel(self)
         self.model["support"] = GcodeModel(self)
-        self.category = "object"
+        self.category: ModelCategory = "object"
 
-    def parseFile(self, path):
+    def parseFile(self, path: str):
         with open(path, "r") as f:
             # init line counter
             self.lineNb = 0
@@ -73,7 +78,7 @@ class GcodeParser:
             if hasattr(self, "parse_" + code):
                 getattr(self, "parse_" + code)(args)
             else:
-                self.warn("Unknown code '%s'" % code)
+                self.warn(f"Unknown code '{code}'")
 
     def parseArgs(self, args):
         dic = {}
@@ -123,14 +128,11 @@ class GcodeParser:
         # G92: Set Position
         self.model[self.category].do_G92(self.parseArgs(args))
 
-    def warn(self, msg):
-        # print "[WARN] Line %d: %s (Text:'%s')" % (self.lineNb, msg, self.line)
-        pass
+    def warn(self, msg: str):
+        print(f"[WARN] Line {self.lineNb}: {msg} (Text:'{self.line}')")
 
-    def error(self, msg):
-        raise Exception(
-            "[ERROR] Line %d: %s (Text:'%s')" % (self.lineNb, msg, self.line)
-        )
+    def error(self, msg: str):
+        raise Exception(f"[ERROR] Line {self.lineNb}: {msg} (Text:'{self.line}')")
 
 
 class BBox(object):
@@ -174,7 +176,7 @@ class BBox(object):
 
 
 class GcodeModel:
-    def __init__(self, parser):
+    def __init__(self, parser: GcodeParser):
         # save parser for messages
         self.parser = parser
         # latest coordinates & extrusion relative to offset, feedrate
@@ -184,11 +186,12 @@ class GcodeModel:
         # if true, args for move (G1) are given relatively (default: absolute)
         self.isRelative = False
         # the segments
-        self.segments = []
-        self.layers = None
-        self.distance = None
-        self.extrudate = None
-        self.bbox = None
+        self.segments: list[Segment] = []
+        self.layers: list[Layer] = []
+        self.distance = 0
+        self.extrudate = 0
+        self.extrude = 0
+        self.bbox: Optional[BBox] = None
 
     def do_G0(self, args: dict, type):
         # G0/G1: Rapid/Controlled move
@@ -202,8 +205,7 @@ class GcodeModel:
                 else:
                     coords[axis] = args[axis]
             else:
-                # self.warn("Unknown axis '%s'"%axis)
-                pass
+                self.warn(f"Unknown axis '{axis}'")
         # build segment
         absolute = {
             "X": self.offset["X"] + coords["X"],
@@ -229,7 +231,7 @@ class GcodeModel:
                 else:
                     coords[axis] = args[axis]
             else:
-                self.warn("Unknown axis '%s'" % axis)
+                self.warn(f"Unknown axis '{axis}'")
         # build segment
         absolute = {
             "X": self.offset["X"] + coords["X"],
@@ -264,19 +266,19 @@ class GcodeModel:
                 self.offset[axis] += self.relative[axis] - args[axis]
                 self.relative[axis] = args[axis]
             else:
-                self.warn("Unknown axis '%s'" % axis)
+                self.warn(f"Unknown axis '{axis}'")
 
     def setRelative(self, isRelative):
         self.isRelative = isRelative
 
     def addSegment(self, segment):
         self.segments.append(segment)
-        # print segment
+        # print(segment)
 
-    def warn(self, msg):
+    def warn(self, msg: str):
         self.parser.warn(msg)
 
-    def error(self, msg):
+    def error(self, msg: str):
         self.parser.error(msg)
 
     def classifySegments(self):
@@ -294,7 +296,6 @@ class GcodeModel:
             style = "fly"
 
             # no horizontal movement, but extruder movement: retraction/refill
-
             if (
                 (seg.coords["X"] == coords["X"])
                 and (seg.coords["Y"] == coords["Y"])
@@ -359,7 +360,7 @@ class GcodeModel:
         self.bbox = None
 
         # extender helper
-        def extend(bbox, coords):
+        def extend(bbox: Optional[BBox], coords):
             if bbox is None:
                 return BBox(coords)
             else:
@@ -423,12 +424,11 @@ class GcodeModel:
             "relative": self.relative,
             "offset": self.offset,
             "is_relative": self.isRelative,
-            "segments": self.segments,
+            "segments_count": len(self.segments),
+            "layers_count": len(self.layers),
             "layers": self.layers,
             "distance": self.distance,
-            "extrudate": self.extrudate,
             "bbox": self.bbox,
-            "extrude": self.extrude,
         }
 
 
@@ -464,15 +464,14 @@ class Segment:
             "style": self.style,
             "layer_idx": self.layerIdx,
             "distance": self.distance,
-            "extrudate": self.extrudate,
-            "extrude": self.extrude,
         }
 
 
 class Layer:
     def __init__(self, Z):
         self.Z = Z
-        self.segments = []
+        self.segments: list[Segment] = []
+        self.start: Optional[dict] = None
         self.distance = None
         self.extrudate = None
 
@@ -487,9 +486,9 @@ class Layer:
     def __json__(self):
         return {
             "Z": self.Z,
+            "start": self.start,
             "segments": self.segments,
             "distance": self.distance,
-            "extrudate": self.extrudate,
         }
 
 
