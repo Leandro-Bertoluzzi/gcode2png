@@ -86,6 +86,22 @@ class GcodeRenderer:
         parser = gcode.GcodeParser()
         model = parser.parseFile(path)
 
+        # 2D designs for non-extruders
+        if len(model["object"].layers) == 1:
+            layer = model["object"].layers[0]
+            for seg in layer.segments:
+                if seg.type == "G1":
+                    self.coords["object"]["x"].append(seg.coords["X"])
+                    self.coords["object"]["y"].append(seg.coords["Y"])
+                    self.coords["object"]["z"].append(seg.coords["Z"])
+                    continue
+
+                if self.moves == "true":
+                    self.coords["moves"]["x"].append(seg.coords["X"])
+                    self.coords["moves"]["y"].append(seg.coords["Y"])
+                    self.coords["moves"]["z"].append(seg.coords["Z"])
+            return
+
         for layer in model["object"].layers:
             for seg in layer.segments:
                 if seg.style == "extrude":
@@ -98,6 +114,7 @@ class GcodeRenderer:
                         self.coords["moves"]["x"].append(seg.coords["X"])
                         self.coords["moves"]["y"].append(seg.coords["Y"])
                         self.coords["moves"]["z"].append(seg.coords["Z"])
+
         if self.support == "true":
             for layer in model["support"].layers:
                 for seg in layer.segments:
